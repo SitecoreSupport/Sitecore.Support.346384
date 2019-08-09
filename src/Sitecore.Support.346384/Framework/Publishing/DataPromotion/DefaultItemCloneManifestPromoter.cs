@@ -128,7 +128,7 @@ namespace Sitecore.Support.Framework.Publishing.DataPromotion
                     cloneSourceChain.Add(currentVariant);
 
                     IItemVariantLocator sourceVariantLocator;
-                    if (!currentVariant.TryGetCloneSourceVariantUri("not_important", out sourceVariantLocator) ||
+                    if (!TryGetCloneSourceVariantUri(currentVariant, "not_important", out sourceVariantLocator) ||
                         !deepSourceVariants.TryGetValue(sourceVariantLocator, out currentVariant))
                     {
                         break;
@@ -151,7 +151,7 @@ namespace Sitecore.Support.Framework.Publishing.DataPromotion
                 var sourceUris = clonesToProcess.Select(v =>
                 {
                     IItemVariantLocator cloneSourceUri;
-                    if (v.TryGetCloneSourceVariantUri("not_important", out cloneSourceUri))
+                    if (TryGetCloneSourceVariantUri(v, "not_important", out cloneSourceUri))
                     {
                         return cloneSourceUri;
                     }
@@ -194,6 +194,30 @@ namespace Sitecore.Support.Framework.Publishing.DataPromotion
         private static bool IsCloneSourceField(Guid? fieldId)
         {
             return fieldId == PublishingConstants.Clones.SourceItem || fieldId == PublishingConstants.Clones.SourceVariant;
+        }
+
+        private static bool TryGetCloneSourceVariantUri(IItemVariant variant, string storeName, out IItemVariantLocator sourceUri)
+        {
+            sourceUri = null;
+            var sourceField = variant.Fields.FirstOrDefault(x => x.FieldId == PublishingConstants.Clones.SourceVariant);
+            var sourceRawUri = sourceField?.RawValue;
+
+            if (!string.IsNullOrWhiteSpace(sourceRawUri))
+            {
+                sourceUri = ItemLocatorUtils.ParseSitecoreVariantUri(sourceRawUri, storeName);
+                return true;
+            }
+
+            var sourceItemField = variant.Fields.FirstOrDefault(x => x.FieldId == PublishingConstants.Clones.SourceItem);
+            var sourceItemUri = sourceItemField?.RawValue;
+
+            if (!string.IsNullOrEmpty(sourceItemUri))
+            {
+                sourceUri = ItemLocatorUtils.ParseSitecoreVariantUri($"{sourceItemUri}?lang={variant.Language}&ver={variant.Version}", storeName);
+                return true;
+            }
+
+            return false;
         }
     }
 }
